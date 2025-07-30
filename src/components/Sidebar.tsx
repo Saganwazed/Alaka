@@ -554,6 +554,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => {}}
             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all duration-200 text-gray-300 hover:text-white hover:shadow-md"
+            title="Archive"
+          >
+            <Archive size={18} className="flex-shrink-0" />
+            <span>Archive</span>
+          </button>
+          <button
+            onClick={() => {}}
+            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all duration-200 text-gray-300 hover:text-white hover:shadow-md"
             title="Documentation"
           >
             <BookOpen size={18} className="flex-shrink-0" />
