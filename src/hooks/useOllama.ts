@@ -51,7 +51,7 @@ export const useOllama = () => {
       return connected;
     } catch (err) {
       setIsConnected(false);
-      setError('Failed to connect to Ollama. Please ensure it\'s running on localhost:11434');
+      setError('Failed to connect to bundled Ollama. Please ensure it is running on port 11435');
       return false;
     } finally {
       setIsLoading(false);

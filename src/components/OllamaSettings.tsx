@@ -101,7 +101,7 @@ export const OllamaSettings: React.FC<OllamaSettingsProps> = ({ theme }) => {
                     {isConnected ? 'Connected to Ollama' : 'Not Connected'}
                   </div>
                   <div className="text-xs text-gray-400">
-                    {isConnected ? 'localhost:11434' : 'Please start Ollama service'}
+                    {isConnected ? '127.0.0.1:11435' : 'Please start Ollama service'}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

@@ -34,3 +34,8 @@ coverage/
 
 # OS files
 Thumbs.db
+
+# Bundled Binaries & Models
+resources/models/
+resources/mac/
+*.log

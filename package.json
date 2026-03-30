@@ -55,6 +55,9 @@
       "electron/**/*",
       "package.json"
     ],
+    "extraResources": [
+      "resources/**/*"
+    ],
     "directories": {
       "output": "release"
     }

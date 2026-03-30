@@ -71,13 +71,9 @@ Alaka is a desktop AI chat application built with Electron and React that connec
 ## Prerequisites
 
 1. **Node.js** 18+ and npm
-2. **Ollama** — Install from [ollama.ai](https://ollama.ai)
-3. At least one Ollama model pulled (the app can do this for you, or run manually):
-   ```bash
-   ollama pull llama3.2:3b    # Lightweight, 2GB
-   ollama pull mistral:7b     # High quality, 4.1GB
-   ollama pull phi3:mini      # Fast, 1.3GB
-   ```
+2. **macOS Device** (Intel or Apple Silicon) — The bundled version currently natively supports macOS.
+
+*Note: You do not need to install Ollama or download any models manually! The official macOS Ollama binary and the `tinyllama` model are bundled directly inside the app.*
 
 ---
 
@@ -180,10 +176,11 @@ Alaka/
 │  • Settings & theming           │
 │  • localStorage persistence     │
 └─────────────────────────────────┘
-           │ HTTP (localhost:11434)
+           │ HTTP (127.0.0.1:11435)
 ┌──────────▼──────────────────────┐
-│       Ollama Server             │
-│  (spawned by main process)      │
+│  Bundled Ollama Server          │
+│  (spawned by main process on    │
+│   dedicated port 11435)         │
 │                                 │
 │  • Local LLM inference          │
 │  • Model management             │
@@ -200,16 +197,16 @@ Alaka/
 
 ---
 
-## Ollama Integration
+## Ollama Integration (Bundled)
 
-Alaka automatically manages the Ollama server:
+Alaka significantly simplifies the AI experience by **bundling the Ollama engine and a base LLM (TinyLlama)** directly into the application. There is no need for users to install any external tools!
 
-1. **On startup**: The main process checks if Ollama is running (`pgrep -f "ollama serve"`)
-2. **If not running**: Spawns `ollama serve` as a child process
-3. **If not installed**: Shows a dialog prompting the user to install from [ollama.ai](https://ollama.ai)
-4. **On quit**: Gracefully terminates the spawned Ollama process
+1. **On startup**: The Electron main process launches the bundled Ollama macOS executable located in the app's `Resources` folder.
+2. **Port Conflict Avoidance**: To ensure Alaka works flawlessly—even if you already have Ollama installed globally—our internal engine serves on a dedicated port: `11435`.
+3. **Model Auto-Provisioning**: On the very first launch, Alaka automatically copies the pre-bundled `tinyllama` model weights into your user data directory (`~/Library/Application Support/Alaka/ollama-models`). This ensures the model is ready offline instantly, while keeping the folder writable so you can download more models later.
+4. **On quit**: Gracefully terminates the sandbox Ollama process.
 
-The frontend communicates directly with Ollama's REST API at `http://localhost:11434`:
+The frontend communicates exclusively with this bundled instance at `http://127.0.0.1:11435`:
 - `GET /api/tags` — List installed models
 - `POST /api/chat` — Send chat messages (streaming)
 - `POST /api/pull` — Download new models

@@ -41,7 +41,7 @@ export interface OllamaChatResponse {
 }
 
 export class OllamaService {
-  private baseUrl = 'http://localhost:11434';
+  private baseUrl = 'http://127.0.0.1:11435';
   private isConnected = false;
 
   async checkConnection(): Promise<boolean> {

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { spawn, exec } = require('child_process');
 
 // Check if we're in development mode
@@ -7,74 +8,76 @@ const isDev = !app.isPackaged;
 
 let mainWindow = null;
 let ollamaProcess = null;
+const OLLAMA_PORT = 11435;
 
-// Function to check if Ollama is already running
-async function checkOllamaRunning() {
-  return new Promise((resolve) => {
-    exec('pgrep -f "ollama serve"', (error, stdout) => {
-      resolve(!error && stdout.trim().length > 0);
-    });
-  });
+function getOllamaPath() {
+  if (isDev) {
+    return path.join(__dirname, '../resources/mac/ollama');
+  } else {
+    return path.join(process.resourcesPath, 'resources/mac/ollama'); // Note: during packaging, we'll put it directly in resources
+  }
 }
 
-// Function to start Ollama server
+function ensureModelInUserData() {
+  const userDataModelsPath = path.join(app.getPath('userData'), 'ollama-models');
+  if (!fs.existsSync(userDataModelsPath)) {
+    fs.mkdirSync(userDataModelsPath, { recursive: true });
+    
+    // Copy bundled models over if they exist
+    const bundledModelsPath = isDev 
+      ? path.join(__dirname, '../resources/models')
+      : path.join(process.resourcesPath, 'resources/models');
+      
+    if (fs.existsSync(bundledModelsPath)) {
+      console.log('Initial launch: Copying bundled models to user data directory...');
+      try {
+        fs.cpSync(bundledModelsPath, userDataModelsPath, { recursive: true });
+      } catch (err) {
+        console.error('Error copying bundled models:', err);
+      }
+    }
+  }
+  return userDataModelsPath;
+}
+
+// Function to check if Ollama is already running on our port
+async function checkOllamaRunning() {
+  try {
+    const res = await fetch(`http://127.0.0.1:${OLLAMA_PORT}/api/tags`);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Function to start bundled Ollama server
 async function startOllama() {
   try {
-    console.log('Checking if Ollama is already running...');
     const isRunning = await checkOllamaRunning();
-    
     if (isRunning) {
-      console.log('Ollama is already running');
+      console.log('Bundled Ollama is already running');
       return true;
     }
 
-    console.log('Starting Ollama server...');
-    
-    // Check if ollama command exists
-    const checkOllamaExists = () => {
-      return new Promise((resolve) => {
-        exec('which ollama', (error) => {
-          resolve(!error);
-        });
-      });
-    };
-
-    const ollamaExists = await checkOllamaExists();
-    if (!ollamaExists) {
-      console.log('Ollama not found. Please install Ollama first.');
-      // Show dialog to user
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        dialog.showMessageBox(mainWindow, {
-          type: 'warning',
-          title: 'Ollama Not Found',
-          message: 'Ollama is not installed on your system.',
-          detail: 'Please install Ollama from https://ollama.ai to use this application.',
-          buttons: ['OK', 'Open Ollama Website']
-        }).then((result) => {
-          if (result.response === 1) {
-            shell.openExternal('https://ollama.ai');
-          }
-        });
-      }
+    const ollamaPath = getOllamaPath();
+    if (!fs.existsSync(ollamaPath)) {
+      console.error('Bundled Ollama binary not found at:', ollamaPath);
       return false;
     }
 
-    // Start Ollama serve
-    ollamaProcess = spawn('ollama', ['serve'], {
+    const userDataModelsPath = ensureModelInUserData();
+
+    ollamaProcess = spawn(ollamaPath, ['serve'], {
       detached: false,
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-
-    ollamaProcess.stdout.on('data', (data) => {
-      console.log(`Ollama stdout: ${data}`);
-    });
-
-    ollamaProcess.stderr.on('data', (data) => {
-      console.log(`Ollama stderr: ${data}`);
+      env: {
+        ...process.env,
+        OLLAMA_HOST: `127.0.0.1:${OLLAMA_PORT}`,
+        OLLAMA_MODELS: userDataModelsPath
+      }
     });
 
     ollamaProcess.on('error', (error) => {
-      console.error('Failed to start Ollama:', error);
+      console.error('Failed to start bundled Ollama:', error);
     });
 
     ollamaProcess.on('close', (code) => {
@@ -84,8 +87,7 @@ async function startOllama() {
 
     // Wait a moment for Ollama to start
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    console.log('Ollama server started successfully');
+    console.log('Bundled Ollama server started successfully on port', OLLAMA_PORT);
     return true;
   } catch (error) {
     console.error('Error starting Ollama:', error);
@@ -96,7 +98,7 @@ async function startOllama() {
 // Function to stop Ollama server
 function stopOllama() {
   if (ollamaProcess) {
-    console.log('Stopping Ollama server...');
+    console.log('Stopping bundled Ollama server...');
     ollamaProcess.kill('SIGTERM');
     ollamaProcess = null;
   }
